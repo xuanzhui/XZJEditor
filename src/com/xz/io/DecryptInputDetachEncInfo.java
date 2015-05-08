@@ -99,7 +99,7 @@ public class DecryptInputDetachEncInfo {
 	}
 
 	public String decryptToString() throws IOException, EncryptException {
-		this.decrypt(true, null);
+		this.decrypt(false, null);
 		return this.decryptContent;
 	}
 }

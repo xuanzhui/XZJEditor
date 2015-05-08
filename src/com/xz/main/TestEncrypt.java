@@ -57,7 +57,7 @@ public class TestEncrypt {
 		String encFile = eo.encrypt();
 
 		DecryptInputDetachEncInfo dd = new DecryptInputDetachEncInfo(encFile, "529CA8050A00180790CF88B63468826A");
-		dd.decryptToFile();
+		System.out.println(dd.decryptToString());
 
 	}
 
