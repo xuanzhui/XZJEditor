@@ -1,12 +1,8 @@
 package com.xz.io;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import com.xz.encrypt.BitComplementEncrypt;
 import com.xz.encrypt.BitReverseEncrypt;
@@ -14,32 +10,32 @@ import com.xz.encrypt.Encrypt;
 import com.xz.encrypt.EncryptException;
 
 public class EncryptOutputAttachEncInfo {
-	private String filepath;
-	private String encfile;
+	private String destFilePath;
 	private String md5password;
 	private String encType;
 	private int offset;
 	private FileOutputStream fileOutput;
-	private FileInputStream fileInput;
+	//private FileInputStream fileInput;
 	
-	public EncryptOutputAttachEncInfo(String filepath, String md5password, String encType, int offset) throws FileNotFoundException{
-		this.filepath=filepath;
+	public EncryptOutputAttachEncInfo(String destFilePath, String md5password, String encType, int offset) throws FileNotFoundException {
+		this.destFilePath=destFilePath;
 		this.md5password=md5password;
 		this.encType = encType;
 		this.offset=offset;
 		
-		fileInput = new FileInputStream(this.filepath);
+		//fileInput = new FileInputStream(this.filepath);
+
+		if (! this.destFilePath.endsWith(Encrypt.ENC_FILE_SUFF))
+			destFilePath = this.destFilePath+Encrypt.ENC_FILE_SUFF;
 		
-		encfile = this.filepath+Encrypt.ENC_FILE_SUFF;
-		
-		fileOutput = new FileOutputStream(encfile);
+		fileOutput = new FileOutputStream(destFilePath);
 	}
 	
-	public EncryptOutputAttachEncInfo(String filepath, String md5password, String encType) throws FileNotFoundException{
-		this(filepath, md5password, encType, 0);
+	public EncryptOutputAttachEncInfo(String destFilePath, String md5password, String encType) throws FileNotFoundException{
+		this(destFilePath, md5password, encType, 0);
 	}
 
-	public String encrypt() throws EncryptException, IOException{
+	private void encrypt(boolean fromFile, String srcFilePath, byte[] srcBytes) throws EncryptException, IOException{
 		this.attachEncInfo();
 		
 		Encrypt encrypt;
@@ -52,7 +48,12 @@ public class EncryptOutputAttachEncInfo {
 		
 		BufferedOutputStream bos = new BufferedOutputStream(new EncryptOutputStream(this.fileOutput, encrypt));
 		
-		BufferedInputStream bis = new BufferedInputStream(this.fileInput);
+		BufferedInputStream bis = null;
+
+		if (fromFile)
+			bis = new BufferedInputStream(new FileInputStream(srcFilePath));
+		else
+			bis = new BufferedInputStream(new ByteArrayInputStream(srcBytes));
 		
 		byte[] buf = new byte[512];
 		
@@ -63,8 +64,25 @@ public class EncryptOutputAttachEncInfo {
 		
 		bis.close();
 		bos.flush();bos.close();
-		
-		return this.encfile;
+	}
+
+	public String encryptFromFile(String srcFilePath) throws IOException, EncryptException {
+		if (!Files.exists(Paths.get(srcFilePath)))
+			throw new FileNotFoundException("can't find file "+srcFilePath);
+
+		this.encrypt(true, srcFilePath, null);
+
+		return this.destFilePath;
+	}
+
+	public String encryptFromString(String srcStringContent, String stringCharset) throws IOException, EncryptException {
+		String realCset = stringCharset;
+		if (stringCharset == null)
+			realCset = "UTF-8";
+
+		this.encrypt(false, null, srcStringContent.getBytes(realCset));
+
+		return this.destFilePath;
 	}
 	
 	public void attachEncInfo() throws IOException{
