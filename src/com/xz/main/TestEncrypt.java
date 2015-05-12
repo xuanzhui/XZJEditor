@@ -53,8 +53,8 @@ public class TestEncrypt {
 		System.out.println("done");*/
 
 		String srcFile = "testenc.txt";
-		EncryptOutputAttachEncInfo eo = new EncryptOutputAttachEncInfo(srcFile, "529CA8050A00180790CF88B63468826A", Encrypt.ENC_BC, 2);
-		String encFile = eo.encrypt();
+		EncryptOutputAttachEncInfo eo = new EncryptOutputAttachEncInfo("destestenc", "529CA8050A00180790CF88B63468826A", Encrypt.ENC_BC, 2);
+		String encFile = eo.encryptFromFile(srcFile);
 
 		DecryptInputDetachEncInfo dd = new DecryptInputDetachEncInfo(encFile, "529CA8050A00180790CF88B63468826A");
 		System.out.println(dd.decryptToString());

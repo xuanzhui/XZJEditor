@@ -22,14 +22,20 @@ import com.xz.frame.EditorFrame;
 public class Main {
 
 	public static String pwfile=".XZJEditor/password.dat";
+	private String md5password;
 	
 	public static void main(String[] args) {
 		
-		if (new Main().verifyPassword())
-			new EditorFrame();
+		Main m = new Main();
+		if (m.verifyPassword())
+			new EditorFrame(m.getMD5Password());
 		
 	}
 
+	public String getMD5Password(){
+		return this.md5password;
+	}
+	
 	public void initialPassword(String password){
 		String userhome = System.getProperty("user.home");
 		String filename=userhome + '/' + pwfile;
@@ -45,7 +51,10 @@ public class Main {
 		
 		try {
 			BufferedWriter fw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), "UTF-8"));
-			fw.write(MD5Encrypt.stringMD5(password));
+			
+			md5password = MD5Encrypt.stringMD5(password);
+			
+			fw.write(md5password);
 			fw.flush();
 			fw.close();
 		} catch (FileNotFoundException e) {
@@ -106,7 +115,10 @@ public class Main {
 		try {
 			BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(filename), "UTF-8"));
 			String enpw=br.readLine();
-			res=enpw.endsWith(MD5Encrypt.stringMD5(password));
+			
+			md5password = MD5Encrypt.stringMD5(password);
+			
+			res=enpw.endsWith(md5password);
 			br.close();
 		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
