@@ -17,6 +17,7 @@ import java.io.*;
 public class TabTextArea extends JTextArea {
 
     private String fileName = "Untitled";
+    private String fileBaseName = "Untitled";
 
     private boolean contentChanged = false;
 
@@ -34,7 +35,9 @@ public class TabTextArea extends JTextArea {
                 if (!contentChanged) {
                     contentChanged = true;
 
-                    tabbedPane.setTitleAt(tabbedPane.getSelectedIndex(), "* "+fileName);
+                    //tabbedPane.setTitleAt(tabbedPane.getSelectedIndex(), "* "+fileName);
+                    ((ButtonTabComponent)tabbedPane.getTabComponentAt(tabbedPane.getSelectedIndex())).
+                            changeTabLabelTitle("* " + fileBaseName);
                 }
             }
         });
@@ -46,6 +49,7 @@ public class TabTextArea extends JTextArea {
 
     public void setFileName(String fileName) {
         this.fileName = fileName;
+        fileBaseName = new File(fileName).getName();
     }
 
     public boolean isContentChanged() {
@@ -72,7 +76,9 @@ public class TabTextArea extends JTextArea {
         }
 
 
-        tabbedPane.setTitleAt(tabbedPane.getSelectedIndex(), new File(fileName).getName());
+        contentChanged = false;
+        ((ButtonTabComponent)tabbedPane.getTabComponentAt(tabbedPane.getSelectedIndex())).
+                changeTabLabelTitle("  " + fileBaseName);
     }
 
     public void loadContent(String fileName, String md5password) throws IOException, EncryptException {
@@ -88,6 +94,5 @@ public class TabTextArea extends JTextArea {
             this.read(r, null);
             r.close();
         }
-        tabbedPane.setTitleAt(tabbedPane.getSelectedIndex(), new File(fileName).getName());
     }
 }

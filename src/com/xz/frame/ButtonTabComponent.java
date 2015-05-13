@@ -10,8 +10,9 @@ import java.awt.event.*;
  */
 public abstract class ButtonTabComponent extends JPanel {
     private final JTabbedPane pane;
+    private JLabel label;
 
-    public ButtonTabComponent(final JTabbedPane pane) {
+    public ButtonTabComponent(final JTabbedPane pane, String title) {
         //unset default FlowLayout' gaps
         super(new FlowLayout(FlowLayout.LEFT, 0, 0));
         if (pane == null) {
@@ -21,15 +22,7 @@ public abstract class ButtonTabComponent extends JPanel {
         setOpaque(false);
 
         //make JLabel read titles from JTabbedPane
-        JLabel label = new JLabel() {
-            public String getText() {
-                int i = pane.indexOfTabComponent(ButtonTabComponent.this);
-                if (i != -1) {
-                    return pane.getTitleAt(i);
-                }
-                return null;
-            }
-        };
+        label = new JLabel(title);
 
         add(label);
         //add more space between the label and the button
@@ -41,7 +34,11 @@ public abstract class ButtonTabComponent extends JPanel {
         setBorder(BorderFactory.createEmptyBorder(2, 0, 0, 0));
     }
 
-    public abstract void beforeCloseTab();
+    public void changeTabLabelTitle(String tabTitle){
+        label.setText(tabTitle);
+    }
+
+    public abstract int beforeCloseTab();
 
     private class TabButton extends JButton implements ActionListener {
         public TabButton() {
@@ -65,7 +62,10 @@ public abstract class ButtonTabComponent extends JPanel {
         }
 
         public void actionPerformed(ActionEvent e) {
-            beforeCloseTab();
+            int rep = beforeCloseTab();
+            if (rep == JOptionPane.CANCEL_OPTION ||
+                    rep == JOptionPane.CLOSED_OPTION)
+                return;
 
             int i = pane.indexOfTabComponent(ButtonTabComponent.this);
             if (i != -1) {

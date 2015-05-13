@@ -2,6 +2,7 @@ package com.xz.frame;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -20,23 +21,27 @@ public class EditorFrame extends JFrame {
 
 	private JTabbedPane area = new JTabbedPane();
 	private JFileChooser dialog = new JFileChooser(System.getProperty("user.home"));
-	private class NewAction extends AbstractAction {
-		
-		public NewAction(){
-			super("New", new ImageIcon("icons/new.png"));
-			this.putValue(SHORT_DESCRIPTION, "New File");
+
+	private class SaveButtonTabComponent extends ButtonTabComponent{
+
+		public SaveButtonTabComponent(JTabbedPane pane, String title) {
+			super(pane, title);
 		}
-		
-		public void actionPerformed(ActionEvent e) {
-			TabTextArea tabTextArea = new TabTextArea(area);
-			JScrollPane scroll = new JScrollPane(tabTextArea);
-			area.addTab("Tab #" + (area.getTabCount() + 1), scroll);
-			ButtonTabComponent btn = new ButtonTabComponent(area) {
-				@Override
-				public void beforeCloseTab() {
+
+		@Override
+		public int beforeCloseTab() {
+			JScrollPane scrollPane = (JScrollPane) area.getSelectedComponent();
+			TabTextArea tabTextArea = (TabTextArea) scrollPane.getViewport().getView();
+
+			int rep = JOptionPane.NO_OPTION;
+			if (tabTextArea.isContentChanged()){
+
+				rep = JOptionPane.showConfirmDialog(EditorFrame.this, "save changes?");
+
+				if (rep == JOptionPane.YES_OPTION) {
 					try {
 						saveFile(null, 0);
-					} catch(IOException ex) {
+					} catch (IOException ex) {
 						Toolkit.getDefaultToolkit().beep();
 						JOptionPane.showMessageDialog(EditorFrame.this, ex.getMessage(), "Error Message", JOptionPane.ERROR_MESSAGE);
 					} catch (EncryptException ex) {
@@ -44,30 +49,66 @@ public class EditorFrame extends JFrame {
 						JOptionPane.showMessageDialog(EditorFrame.this, ex.getMessage(), "Error Message", JOptionPane.ERROR_MESSAGE);
 					}
 				}
-			};
-			area.setTabComponentAt(area.getTabCount()-1, btn);
+			}
+
+			return rep;
+		}
+	}
+
+	private class NewAction extends AbstractAction {
+		
+		public NewAction(){
+			super("New", new ImageIcon("icons/new.png"));
+			this.putValue(SHORT_DESCRIPTION, "New Tab");
+		}
+		
+		public void actionPerformed(ActionEvent e) {
+			TabTextArea tabTextArea = new TabTextArea(area);
+			JScrollPane scroll = new JScrollPane(tabTextArea);
+			String tabTitle = "Tab #" + (area.getTabCount() + 1);
+			area.addTab(tabTitle, scroll);
+
+			area.setTabComponentAt(area.getTabCount()-1, new SaveButtonTabComponent(area, tabTitle));
 			area.setSelectedIndex(area.getTabCount()-1);
 		}
 	}
 	
 	Action New = new NewAction();
-	
-	Action Open = new AbstractAction("Open", new ImageIcon("icons/open.gif")) {
+
+	private class OpenAction extends AbstractAction {
+		public OpenAction(){
+			super("Open", new ImageIcon("icons/open.gif"));
+			this.putValue(SHORT_DESCRIPTION, "Open File");
+		}
+
 		public void actionPerformed(ActionEvent e) {
-			if(dialog.showOpenDialog(null)==JFileChooser.APPROVE_OPTION) {
+			if (dialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+				String filepath = dialog.getSelectedFile().getAbsolutePath();
+				String fileBaseName = new File(filepath).getName();
+
+				TabTextArea tabTextArea = new TabTextArea(area);
+				JScrollPane scroll = new JScrollPane(tabTextArea);
+
+				area.addTab(fileBaseName, scroll);
+				area.setTabComponentAt(area.getTabCount()-1, new SaveButtonTabComponent(area, fileBaseName));
+				area.setSelectedIndex(area.getTabCount()-1);
+
 				try {
-					readInFile(dialog.getSelectedFile().getAbsolutePath());
-				} catch(IOException ex) {
+					readInFile(filepath, tabTextArea);
+				} catch (IOException ex) {
 					Toolkit.getDefaultToolkit().beep();
 					JOptionPane.showMessageDialog(EditorFrame.this, ex.getMessage(), "Error Message", JOptionPane.ERROR_MESSAGE);
 				} catch (EncryptException ex) {
 					Toolkit.getDefaultToolkit().beep();
 					JOptionPane.showMessageDialog(EditorFrame.this, ex.getMessage(), "Error Message", JOptionPane.ERROR_MESSAGE);
 				}
+
 			}
 		}
-	};
-	
+	}
+
+	Action Open = new OpenAction();
+
 	Action Save = new AbstractAction("Save", new ImageIcon("icons/save.gif")) {
 		public void actionPerformed(ActionEvent e) {
 			try {
@@ -111,21 +152,7 @@ public class EditorFrame extends JFrame {
 		TabTextArea tabTextArea = new TabTextArea(area);
 		JScrollPane scroll = new JScrollPane(tabTextArea);
 		area.addTab("Tab #1", scroll);
-		ButtonTabComponent btn = new ButtonTabComponent(area) {
-			@Override
-			public void beforeCloseTab() {
-				try {
-					saveFile(null, 0);
-				} catch(IOException ex) {
-					Toolkit.getDefaultToolkit().beep();
-					JOptionPane.showMessageDialog(EditorFrame.this, ex.getMessage(), "Error Message", JOptionPane.ERROR_MESSAGE);
-				} catch (EncryptException ex) {
-					Toolkit.getDefaultToolkit().beep();
-					JOptionPane.showMessageDialog(EditorFrame.this, ex.getMessage(), "Error Message", JOptionPane.ERROR_MESSAGE);
-				}
-			}
-		};
-		area.setTabComponentAt(0, btn);
+		area.setTabComponentAt(0, new SaveButtonTabComponent(area, "Tab #1"));
 
 		add(area,BorderLayout.CENTER);
 		
@@ -179,19 +206,16 @@ public class EditorFrame extends JFrame {
 		setVisible(true);
 	}
 	
-	private void readInFile(String fileName) throws IOException, EncryptException {
-		JScrollPane scrollPane = (JScrollPane) area.getSelectedComponent();
-		TabTextArea tabTextArea = (TabTextArea) scrollPane.getViewport().getView();
-
+	private void readInFile(String fileName, TabTextArea tabTextArea) throws IOException, EncryptException {
 		tabTextArea.loadContent(fileName, md5password);
 
 		setTitle(fileName);
-
 	}
 	
 	private void saveFile(String encType, int offset) throws IOException, EncryptException {
 		JScrollPane scrollPane = (JScrollPane) area.getSelectedComponent();
 		TabTextArea tabTextArea = (TabTextArea) scrollPane.getViewport().getView();
+
 		if(!tabTextArea.getFileName().equals("Untitled"))
 			tabTextArea.saveContent(encType, offset, md5password);
 		else {
