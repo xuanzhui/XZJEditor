@@ -20,6 +20,11 @@ public class EditorFrame extends JFrame {
 	private String md5password;
 
 	private JTabbedPane area = new JTabbedPane();
+
+	private JCheckBox jCheckBox = new JCheckBox();
+	private JComboBox<String> encType = new JComboBox<String>();
+	private JComboBox<Integer> offset = new JComboBox<Integer>();
+
 	private JFileChooser dialog = new JFileChooser(System.getProperty("user.home"));
 
 	private class SaveButtonTabComponent extends ButtonTabComponent{
@@ -191,6 +196,20 @@ public class EditorFrame extends JFrame {
 		cut.setText(null); cut.setIcon(new ImageIcon("icons/cut.gif"));
 		cop.setText(null); cop.setIcon(new ImageIcon("icons/copy.gif"));
 		pas.setText(null); pas.setIcon(new ImageIcon("icons/paste.gif"));
+
+		tool.addSeparator();
+		tool.add(new JLabel("    Encrypt When Save"));
+		tool.add(jCheckBox);
+
+		tool.add(new JLabel("    Encrypt Type"));
+		encType.addItem("BitReverseEncrypt");
+		encType.addItem("BitComplementEncrypt");
+		tool.add(encType);
+
+		tool.add(new JLabel("    Offset"));
+		for (int i=1; i<33; i++)
+			offset.addItem(i);
+		tool.add(offset);
 		
 //		Save.setEnabled(false);
 //		SaveAs.setEnabled(false);
