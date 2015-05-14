@@ -166,19 +166,30 @@ public class EditorFrame extends JFrame {
 		JMenu file = new JMenu("File");
 		JMenu edit = new JMenu("Edit");
 		JMB.add(file); JMB.add(edit);
-		
-		file.add(New);file.add(Open);file.add(Save);
+
+		file.add(New);file.add(Open);
+		Save.putValue(AbstractAction.SHORT_DESCRIPTION, "Save File");
+		file.add(Save);
 		file.add(Quit);file.add(SaveAs);
 		file.addSeparator();
 		
 		for(int i=0; i<4; i++)
 			file.getItem(i).setIcon(null);
-		
+
+		/*
 		ActionMap m = area.getActionMap();
 		Action Cut = m.get(DefaultEditorKit.cutAction);
 		Action Copy = m.get(DefaultEditorKit.copyAction);
 		Action Paste = m.get(DefaultEditorKit.pasteAction);
-		
+		*/
+
+		Action Cut = new DefaultEditorKit.CutAction();
+		Cut.putValue(AbstractAction.SHORT_DESCRIPTION, "Cut");
+		Action Copy = new DefaultEditorKit.CopyAction();
+		Copy.putValue(AbstractAction.SHORT_DESCRIPTION, "Copy");
+		Action Paste = new DefaultEditorKit.PasteAction();
+		Paste.putValue(AbstractAction.SHORT_DESCRIPTION, "Paste");
+
 		edit.add(Cut);edit.add(Copy);edit.add(Paste);
 
 		edit.getItem(0).setText("Cut");
@@ -204,11 +215,15 @@ public class EditorFrame extends JFrame {
 		tool.add(new JLabel("    Encrypt Type"));
 		encType.addItem("BitReverseEncrypt");
 		encType.addItem("BitComplementEncrypt");
+		encType.setMaximumSize(new Dimension(200, 30));
 		tool.add(encType);
 
-		tool.add(new JLabel("    Offset"));
+		JLabel offsetLabel = new JLabel("    Offset");
+		offsetLabel.setToolTipText("offset is only required for BitComplementEncrypt");
+		tool.add(offsetLabel);
 		for (int i=1; i<33; i++)
 			offset.addItem(i);
+		offset.setMaximumSize(new Dimension(100, 30));
 		tool.add(offset);
 		
 //		Save.setEnabled(false);
