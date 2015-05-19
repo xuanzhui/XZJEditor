@@ -102,4 +102,12 @@ public class DecryptInputDetachEncInfo {
 		this.decrypt(false, null);
 		return this.decryptContent;
 	}
+
+	public String getEncType() {
+		return this.encType;
+	}
+
+	public int getOffset() {
+		return this.offset;
+	}
 }

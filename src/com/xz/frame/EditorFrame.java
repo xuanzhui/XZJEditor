@@ -3,27 +3,19 @@ package com.xz.frame;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import javax.swing.*;
 import javax.swing.text.DefaultEditorKit;
 
-import com.xz.encrypt.Encrypt;
 import com.xz.encrypt.EncryptException;
-import com.xz.io.DecryptInputDetachEncInfo;
 
 public class EditorFrame extends JFrame {
 	private String md5password;
 
 	private JTabbedPane area = new JTabbedPane();
 
-	private JCheckBox jCheckBox = new JCheckBox();
-	private JComboBox<String> encType = new JComboBox<String>();
-	private JComboBox<Integer> offset = new JComboBox<Integer>();
+
 
 	private JFileChooser dialog = new JFileChooser(System.getProperty("user.home"));
 
@@ -35,17 +27,16 @@ public class EditorFrame extends JFrame {
 
 		@Override
 		public int beforeCloseTab() {
-			JScrollPane scrollPane = (JScrollPane) area.getSelectedComponent();
-			TabTextArea tabTextArea = (TabTextArea) scrollPane.getViewport().getView();
+			TabEncryptTextArea tabEncryptTextArea = (TabEncryptTextArea) area.getSelectedComponent();
 
 			int rep = JOptionPane.NO_OPTION;
-			if (tabTextArea.isContentChanged()){
+			if (tabEncryptTextArea.isContentChanged() || tabEncryptTextArea.isEncTypeChanged()){
 
 				rep = JOptionPane.showConfirmDialog(EditorFrame.this, "save changes?");
 
 				if (rep == JOptionPane.YES_OPTION) {
 					try {
-						saveFile(null, 0);
+						saveFile(false);
 					} catch (IOException ex) {
 						Toolkit.getDefaultToolkit().beep();
 						JOptionPane.showMessageDialog(EditorFrame.this, ex.getMessage(), "Error Message", JOptionPane.ERROR_MESSAGE);
@@ -68,13 +59,14 @@ public class EditorFrame extends JFrame {
 		}
 		
 		public void actionPerformed(ActionEvent e) {
-			TabTextArea tabTextArea = new TabTextArea(area);
-			JScrollPane scroll = new JScrollPane(tabTextArea);
+			TabEncryptTextArea tabEncryptTextArea = new TabEncryptTextArea(area);
 			String tabTitle = "Tab #" + (area.getTabCount() + 1);
-			area.addTab(tabTitle, scroll);
+			area.addTab(tabTitle, tabEncryptTextArea);
 
-			area.setTabComponentAt(area.getTabCount()-1, new SaveButtonTabComponent(area, tabTitle));
-			area.setSelectedIndex(area.getTabCount()-1);
+			area.setTabComponentAt(area.getTabCount() - 1, new SaveButtonTabComponent(area, tabTitle));
+			area.setSelectedIndex(area.getTabCount() - 1);
+
+			tabEncryptTextArea.getjTextArea().requestFocus();
 		}
 	}
 	
@@ -91,15 +83,14 @@ public class EditorFrame extends JFrame {
 				String filepath = dialog.getSelectedFile().getAbsolutePath();
 				String fileBaseName = new File(filepath).getName();
 
-				TabTextArea tabTextArea = new TabTextArea(area);
-				JScrollPane scroll = new JScrollPane(tabTextArea);
+				TabEncryptTextArea tabEncryptTextArea = new TabEncryptTextArea(area);
 
-				area.addTab(fileBaseName, scroll);
+				area.addTab(fileBaseName, tabEncryptTextArea);
 				area.setTabComponentAt(area.getTabCount()-1, new SaveButtonTabComponent(area, fileBaseName));
 				area.setSelectedIndex(area.getTabCount()-1);
 
 				try {
-					readInFile(filepath, tabTextArea);
+					readInFile(filepath, tabEncryptTextArea);
 				} catch (IOException ex) {
 					Toolkit.getDefaultToolkit().beep();
 					JOptionPane.showMessageDialog(EditorFrame.this, ex.getMessage(), "Error Message", JOptionPane.ERROR_MESSAGE);
@@ -108,6 +99,7 @@ public class EditorFrame extends JFrame {
 					JOptionPane.showMessageDialog(EditorFrame.this, ex.getMessage(), "Error Message", JOptionPane.ERROR_MESSAGE);
 				}
 
+				tabEncryptTextArea.getjTextArea().requestFocus();
 			}
 		}
 	}
@@ -117,7 +109,7 @@ public class EditorFrame extends JFrame {
 	Action Save = new AbstractAction("Save", new ImageIcon("icons/save.gif")) {
 		public void actionPerformed(ActionEvent e) {
 			try {
-				saveFile(null, 0);
+				saveFile(true);
 			} catch(IOException ex) {
 				Toolkit.getDefaultToolkit().beep();
 				JOptionPane.showMessageDialog(EditorFrame.this, ex.getMessage(), "Error Message", JOptionPane.ERROR_MESSAGE);
@@ -132,7 +124,7 @@ public class EditorFrame extends JFrame {
 		
 		public void actionPerformed(ActionEvent e) {
 			try {
-				saveFileAs(null, 0);
+				saveFileAs(true);
 			} catch(IOException ex) {
 				Toolkit.getDefaultToolkit().beep();
 				JOptionPane.showMessageDialog(EditorFrame.this, ex.getMessage(), "Error Message", JOptionPane.ERROR_MESSAGE);
@@ -154,12 +146,11 @@ public class EditorFrame extends JFrame {
 	public EditorFrame(String md5password) {
 		this.md5password = md5password;
 
-		TabTextArea tabTextArea = new TabTextArea(area);
-		JScrollPane scroll = new JScrollPane(tabTextArea);
-		area.addTab("Tab #1", scroll);
+		TabEncryptTextArea tabEncryptTextArea = new TabEncryptTextArea(area);
+		area.addTab("Tab #1", tabEncryptTextArea);
 		area.setTabComponentAt(0, new SaveButtonTabComponent(area, "Tab #1"));
 
-		add(area,BorderLayout.CENTER);
+		add(area, BorderLayout.CENTER);
 		
 		JMenuBar JMB = new JMenuBar();
 		setJMenuBar(JMB);
@@ -208,26 +199,17 @@ public class EditorFrame extends JFrame {
 		cop.setText(null); cop.setIcon(new ImageIcon("icons/copy.gif"));
 		pas.setText(null); pas.setIcon(new ImageIcon("icons/paste.gif"));
 
-		tool.addSeparator();
-		tool.add(new JLabel("    Encrypt When Save"));
-		tool.add(jCheckBox);
-
-		tool.add(new JLabel("    Encrypt Type"));
-		encType.addItem("BitReverseEncrypt");
-		encType.addItem("BitComplementEncrypt");
-		encType.setMaximumSize(new Dimension(200, 30));
-		tool.add(encType);
-
-		JLabel offsetLabel = new JLabel("    Offset");
-		offsetLabel.setToolTipText("offset is only required for BitComplementEncrypt");
-		tool.add(offsetLabel);
-		for (int i=1; i<33; i++)
-			offset.addItem(i);
-		offset.setMaximumSize(new Dimension(100, 30));
-		tool.add(offset);
-		
-//		Save.setEnabled(false);
-//		SaveAs.setEnabled(false);
+		this.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				//everytime a tab is closed, tab total count will decrease 1
+				while (area.getTabCount() > 0) {
+					area.setSelectedIndex(0);
+					((ButtonTabComponent) area.getTabComponentAt(0)).closeTab();
+				}
+				//System.exit(0);
+			}
+		});
 		
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		pack();
@@ -238,36 +220,37 @@ public class EditorFrame extends JFrame {
         this.setLocation((int) (screen.getWidth() - this.getWidth()) / 2, (int) (screen.getHeight() - this.getHeight()) / 2);
         
 		setVisible(true);
+
+		//show UI then focus
+		tabEncryptTextArea.getjTextArea().requestFocus();
 	}
-	
-	private void readInFile(String fileName, TabTextArea tabTextArea) throws IOException, EncryptException {
-		tabTextArea.loadContent(fileName, md5password);
+
+	private void readInFile(String fileName, TabEncryptTextArea tabEncryptTextArea) throws IOException, EncryptException {
+		tabEncryptTextArea.loadContent(fileName, md5password);
 
 		setTitle(fileName);
 	}
 	
-	private void saveFile(String encType, int offset) throws IOException, EncryptException {
-		JScrollPane scrollPane = (JScrollPane) area.getSelectedComponent();
-		TabTextArea tabTextArea = (TabTextArea) scrollPane.getViewport().getView();
+	private void saveFile(boolean echoTitle) throws IOException, EncryptException {
+		TabEncryptTextArea tabEncryptTextArea = (TabEncryptTextArea) area.getSelectedComponent();
 
-		if(!tabTextArea.getFileName().equals("Untitled"))
-			tabTextArea.saveContent(encType, offset, md5password);
+		if(!tabEncryptTextArea.getFileName().equals("Untitled"))
+			tabEncryptTextArea.saveContent(md5password, echoTitle);
 		else {
 			if(dialog.showSaveDialog(null)==JFileChooser.APPROVE_OPTION) {
-				tabTextArea.setFileName(dialog.getSelectedFile().getAbsolutePath());
-				tabTextArea.saveContent(encType, offset, md5password);
+				tabEncryptTextArea.setFileName(dialog.getSelectedFile().getAbsolutePath());
+				tabEncryptTextArea.saveContent(md5password, echoTitle);
 			}
 		}
 	}
 
-	private void saveFileAs(String encType, int offset) throws IOException, EncryptException {
+	private void saveFileAs(boolean echoTitle) throws IOException, EncryptException {
 		if(dialog.showSaveDialog(null)==JFileChooser.APPROVE_OPTION) {
-			JScrollPane scrollPane = (JScrollPane) area.getSelectedComponent();
-			TabTextArea tabTextArea = (TabTextArea) scrollPane.getViewport().getView();
-			tabTextArea.setFileName(dialog.getSelectedFile().getAbsolutePath());
-			tabTextArea.saveContent(encType, offset, md5password);
+			TabEncryptTextArea tabEncryptTextArea = (TabEncryptTextArea) area.getSelectedComponent();
+			tabEncryptTextArea.setFileName(dialog.getSelectedFile().getAbsolutePath());
+			tabEncryptTextArea.saveContent(md5password, echoTitle);
 
-			setTitle(tabTextArea.getFileName());
+			setTitle(tabEncryptTextArea.getFileName());
 		}
 	}
 }
