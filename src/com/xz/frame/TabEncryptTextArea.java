@@ -124,11 +124,24 @@ public class TabEncryptTextArea extends JPanel {
                     return;
 
                 String text = jTextArea.getText();
-                int offset = text.indexOf(keyword, pos);
+                pos = text.indexOf(keyword, pos);
+                if (pos == -1){
+                    pos = 0;
+                    //could be end of text, re-search
+                    pos = text.indexOf(keyword, pos);
+
+                    //still can not find, then pop up not found info
+                    if (pos == -1){
+                        pos = 0;
+                        JOptionPane.showMessageDialog(null, "can not find " + keyword);
+                        return;
+                    }
+                }
                 int kwlength = keyword.length();
                 //highlight
                 try {
-                    jTextArea.getHighlighter().addHighlight(offset, offset+kwlength,
+                    jTextArea.getHighlighter().removeAllHighlights();
+                    jTextArea.getHighlighter().addHighlight(pos, pos+kwlength,
                             new DefaultHighlighter.DefaultHighlightPainter(Color.ORANGE));
                 } catch (BadLocationException e1) {
                     e1.printStackTrace();
@@ -143,6 +156,11 @@ public class TabEncryptTextArea extends JPanel {
                 }
 
                 pos = pos+kwlength;
+
+                /*
+                if (pos>text.length())
+                    pos = 0;
+                    */
             }
         });
 
