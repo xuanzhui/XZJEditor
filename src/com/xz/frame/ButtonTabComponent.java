@@ -40,16 +40,17 @@ public abstract class ButtonTabComponent extends JPanel {
 
     public abstract int beforeCloseTab();
 
-    public void closeTab(){
+    public boolean closeTab(){
         int rep = beforeCloseTab();
         if (rep == JOptionPane.CANCEL_OPTION ||
                 rep == JOptionPane.CLOSED_OPTION)
-            return;
+            return false;
 
         int i = pane.indexOfTabComponent(ButtonTabComponent.this);
         if (i != -1) {
             pane.remove(i);
         }
+        return true;
     }
 
     private class TabButton extends JButton implements ActionListener {

@@ -8,11 +8,10 @@ import com.xz.io.EncryptOutputAttachEncInfo;
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultHighlighter;
 import java.awt.*;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+import java.awt.event.*;
 import java.io.*;
 
 /**
@@ -31,6 +30,19 @@ public class TabEncryptTextArea extends JPanel {
     private JCheckBox jCheckBox = new JCheckBox();
     private JComboBox<String> encType = new JComboBox<String>();
     private JComboBox<Integer> offset = new JComboBox<Integer>();
+
+    private JTextField jKeyword = new JTextField(12);
+    private JButton findBtn = new JButton("Find");
+    private JButton findPrevBtn = new JButton("Find Previous");
+    private JButton findAllBtn = new JButton("Find All");
+
+    private JTextField jReplaceKW = new JTextField(12);
+    private JButton replaceBtn = new JButton("Replace");
+    private JButton replaceAllBtn = new JButton("Replace All");
+
+    JToolBar findReplaceTool = new JToolBar();
+    private boolean findToolAvailable = false;
+    private int pos=0;
 
     public TabEncryptTextArea(final JTabbedPane tabbedPane){
         super();
@@ -89,6 +101,11 @@ public class TabEncryptTextArea extends JPanel {
 
         jTextArea.addKeyListener(new KeyAdapter() {
             public void keyPressed(KeyEvent e) {
+                if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_F){
+                    toggleSearchReplaceTool();
+                    return;
+                }
+
                 if (!contentChanged) {
                     contentChanged = true;
 
@@ -99,6 +116,60 @@ public class TabEncryptTextArea extends JPanel {
             }
         });
 
+        findBtn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                String keyword = jKeyword.getText();
+                if (keyword.length() == 0 || keyword.equals(" "))
+                    return;
+
+                String text = jTextArea.getText();
+                int offset = text.indexOf(keyword, pos);
+                int kwlength = keyword.length();
+                //highlight
+                try {
+                    jTextArea.getHighlighter().addHighlight(offset, offset+kwlength,
+                            new DefaultHighlighter.DefaultHighlightPainter(Color.ORANGE));
+                } catch (BadLocationException e1) {
+                    e1.printStackTrace();
+                }
+
+                //scroll to keyword
+                try {
+                    Rectangle rectangle = jTextArea.modelToView(pos);
+                    jTextArea.scrollRectToVisible(rectangle);
+                } catch (BadLocationException e1) {
+                    e1.printStackTrace();
+                }
+
+                pos = pos+kwlength;
+            }
+        });
+
+        findReplaceTool.add(jKeyword);
+        findReplaceTool.add(findBtn);
+        findReplaceTool.add(findPrevBtn);
+        findReplaceTool.add(findAllBtn);
+        findReplaceTool.addSeparator();
+        findReplaceTool.add(jReplaceKW);
+        findReplaceTool.add(replaceBtn);
+        findReplaceTool.add(replaceAllBtn);
+
+    }
+
+    public void toggleSearchReplaceTool(){
+        if (findToolAvailable)
+            this.remove(findReplaceTool);
+        else
+            this.add(findReplaceTool, BorderLayout.SOUTH);
+
+        findToolAvailable = !findToolAvailable;
+
+        //validate and repaint
+        this.revalidate();
+
+        if (findToolAvailable)
+            jKeyword.requestFocus();
     }
 
     public String getFileName() {
@@ -186,5 +257,7 @@ public class TabEncryptTextArea extends JPanel {
             jTextArea.read(r, null);
             r.close();
         }
+
+        this.encTypeChanged = false;
     }
 }

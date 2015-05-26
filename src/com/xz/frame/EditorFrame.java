@@ -138,8 +138,14 @@ public class EditorFrame extends JFrame {
 	
 	Action Quit = new AbstractAction("Quit") {
 		public void actionPerformed(ActionEvent e) {
-			//saveOld();
-			System.exit(0);
+			saveBeforeCloseWindow();
+		}
+	};
+
+	Action findReplace = new AbstractAction() {
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			((TabEncryptTextArea) area.getSelectedComponent()).toggleSearchReplaceTool();
 		}
 	};
 
@@ -182,47 +188,67 @@ public class EditorFrame extends JFrame {
 		Paste.putValue(AbstractAction.SHORT_DESCRIPTION, "Paste");
 
 		edit.add(Cut);edit.add(Copy);edit.add(Paste);
+		//findReplace.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control F"));
+		edit.add(findReplace);
 
 		edit.getItem(0).setText("Cut");
 		edit.getItem(1).setText("Copy");
 		edit.getItem(2).setText("Paste");
+		edit.getItem(3).setText("Find & Replace");
 		
 		JToolBar tool = new JToolBar();
 		add(tool, BorderLayout.NORTH);
-		
-		tool.add(New);tool.add(Open);tool.add(Save);
+
+		tool.add(New);
+		tool.add(Open);
+		tool.add(Save);
 		tool.addSeparator();
 		
 		JButton cut = tool.add(Cut), cop = tool.add(Copy),pas = tool.add(Paste);
-		
-		cut.setText(null); cut.setIcon(new ImageIcon("icons/cut.gif"));
-		cop.setText(null); cop.setIcon(new ImageIcon("icons/copy.gif"));
-		pas.setText(null); pas.setIcon(new ImageIcon("icons/paste.gif"));
+
+		cut.setText(null);
+		cut.setIcon(new ImageIcon("icons/cut.gif"));
+		cop.setText(null);
+		cop.setIcon(new ImageIcon("icons/copy.gif"));
+		pas.setText(null);
+		pas.setIcon(new ImageIcon("icons/paste.gif"));
 
 		this.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent e) {
-				//everytime a tab is closed, tab total count will decrease 1
-				while (area.getTabCount() > 0) {
-					area.setSelectedIndex(0);
-					((ButtonTabComponent) area.getTabComponentAt(0)).closeTab();
-				}
-				//System.exit(0);
+				saveBeforeCloseWindow();
 			}
 		});
-		
-		setDefaultCloseOperation(EXIT_ON_CLOSE);
+
+		//stop window from closing
+		setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+		//setDefaultCloseOperation(EXIT_ON_CLOSE);
 		pack();
-		
+
 		setTitle("Untitled");
 		
 		Dimension screen= Toolkit.getDefaultToolkit().getScreenSize();
         this.setLocation((int) (screen.getWidth() - this.getWidth()) / 2, (int) (screen.getHeight() - this.getHeight()) / 2);
-        
+
+		this.setExtendedState(MAXIMIZED_BOTH);
 		setVisible(true);
 
 		//show UI then focus
 		tabEncryptTextArea.getjTextArea().requestFocus();
+	}
+
+	private void saveBeforeCloseWindow(){
+		//everytime a tab is closed, tab total count will decrease 1
+		while (area.getTabCount() > 0) {
+			area.setSelectedIndex(0);
+			ButtonTabComponent buttonTabComponent = (ButtonTabComponent) area.getTabComponentAt(0);
+			if (!buttonTabComponent.closeTab())
+				break;
+		}
+
+		if (area.getTabCount() == 0)
+			System.exit(0);
+
 	}
 
 	private void readInFile(String fileName, TabEncryptTextArea tabEncryptTextArea) throws IOException, EncryptException {
