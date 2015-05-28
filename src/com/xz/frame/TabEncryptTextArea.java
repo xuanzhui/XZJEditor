@@ -101,7 +101,7 @@ public class TabEncryptTextArea extends JPanel {
 
         jTextArea.addKeyListener(new KeyAdapter() {
             public void keyPressed(KeyEvent e) {
-                if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_F){
+                if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_F) {
                     toggleSearchReplaceTool();
                     return;
                 }
@@ -125,14 +125,64 @@ public class TabEncryptTextArea extends JPanel {
 
                 String text = jTextArea.getText();
                 pos = text.indexOf(keyword, pos);
-                if (pos == -1){
+                if (pos == -1) {
                     pos = 0;
                     //could be end of text, re-search
                     pos = text.indexOf(keyword, pos);
 
                     //still can not find, then pop up not found info
+                    if (pos == -1) {
+                        pos = 0;
+                        jTextArea.getHighlighter().removeAllHighlights();
+                        JOptionPane.showMessageDialog(null, "can not find " + keyword);
+                        return;
+                    }
+                }
+                int kwlength = keyword.length();
+                //highlight
+                try {
+                    jTextArea.getHighlighter().removeAllHighlights();
+                    jTextArea.getHighlighter().addHighlight(pos, pos + kwlength,
+                            new DefaultHighlighter.DefaultHighlightPainter(Color.ORANGE));
+                } catch (BadLocationException e1) {
+                    e1.printStackTrace();
+                }
+
+                //scroll to keyword
+                try {
+                    Rectangle rectangle = jTextArea.modelToView(pos);
+                    jTextArea.scrollRectToVisible(rectangle);
+                } catch (BadLocationException e1) {
+                    e1.printStackTrace();
+                }
+
+                pos = pos + kwlength;
+
+                /*
+                if (pos>text.length())
+                    pos = 0;
+                    */
+            }
+        });
+
+        findPrevBtn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                String keyword = jKeyword.getText();
+                if (keyword.length() == 0 || keyword.equals(" "))
+                    return;
+
+                String text = jTextArea.getText();
+                pos = text.lastIndexOf(keyword, pos);
+                if (pos == -1){
+                    pos = text.length();
+                    //could be start of text, re-search
+                    pos = text.lastIndexOf(keyword, pos);
+
+                    //still can not find, then pop up not found info
                     if (pos == -1){
                         pos = 0;
+                        jTextArea.getHighlighter().removeAllHighlights();
                         JOptionPane.showMessageDialog(null, "can not find " + keyword);
                         return;
                     }
@@ -155,12 +205,107 @@ public class TabEncryptTextArea extends JPanel {
                     e1.printStackTrace();
                 }
 
-                pos = pos+kwlength;
+                pos = pos-kwlength;
 
                 /*
                 if (pos>text.length())
                     pos = 0;
                     */
+            }
+        });
+
+        findAllBtn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                String keyword = jKeyword.getText();
+                if (keyword.length() == 0 || keyword.equals(" "))
+                    return;
+
+                String text = jTextArea.getText();
+                pos = text.indexOf(keyword, 0);
+                jTextArea.getHighlighter().removeAllHighlights();
+
+                if (pos == -1){
+                    pos = 0;
+                    JOptionPane.showMessageDialog(null, "can not find " + keyword);
+                    return;
+                }
+
+                int firstpos = pos;
+                int kwlength = keyword.length();
+
+                //highlight
+                while (pos != -1) {
+                    try {
+                        jTextArea.getHighlighter().addHighlight(pos, pos + kwlength,
+                                new DefaultHighlighter.DefaultHighlightPainter(Color.ORANGE));
+                        pos = text.indexOf(keyword, pos + kwlength);
+                    } catch (BadLocationException e1) {
+                        e1.printStackTrace();
+                    }
+                }
+
+                //scroll to keyword
+                try {
+                    Rectangle rectangle = jTextArea.modelToView(firstpos);
+                    jTextArea.scrollRectToVisible(rectangle);
+                } catch (BadLocationException e1) {
+                    e1.printStackTrace();
+                }
+
+                pos = 0;
+
+                /*
+                if (pos>text.length())
+                    pos = 0;
+                    */
+            }
+        });
+
+        replaceBtn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                String keyword = jKeyword.getText();
+                if (keyword.length() == 0)
+                    return;
+
+                String text = jTextArea.getText();
+                pos = text.indexOf(keyword, 0);
+                if (pos == -1) {
+                    pos = 0;
+                    JOptionPane.showMessageDialog(null, "can not find " + keyword);
+                    return;
+                }
+
+                jTextArea.setText(text.replaceFirst(keyword, jReplaceKW.getText()));
+                //jTextArea.revalidate();
+
+                //scroll to first keyword occurrence
+                try {
+                    Rectangle rectangle = jTextArea.modelToView(pos);
+                    jTextArea.scrollRectToVisible(rectangle);
+                } catch (BadLocationException e1) {
+                    e1.printStackTrace();
+                }
+            }
+        });
+
+        replaceAllBtn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                String keyword = jKeyword.getText();
+                if (keyword.length() == 0)
+                    return;
+
+                String text = jTextArea.getText();
+                pos = text.indexOf(keyword);
+                if (pos == -1) {
+                    pos = 0;
+                    JOptionPane.showMessageDialog(null, "can not find " + keyword);
+                    return;
+                }
+
+                jTextArea.setText(text.replace(keyword, jReplaceKW.getText()));
             }
         });
 
