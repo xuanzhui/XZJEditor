@@ -258,6 +258,8 @@ public class EditorFrame extends JFrame {
 
 		//show UI then focus
 		//tabEncryptTextArea.getjTextArea().requestFocus();
+
+		loadFileOpenedLastTime();
 	}
 
 	private void loadFileOpenedLastTime() {
@@ -303,24 +305,26 @@ public class EditorFrame extends JFrame {
 		}
 
 		if (area.getTabCount() == 0) {
-			String filestr = "";
-			for (String str:filesOpened)
-				filestr += str+',';
+			if (filesOpened.size() != 0) {
+				String filestr = "";
+				for (String str : filesOpened)
+					filestr += str + ',';
 
-			filestr = filestr.substring(0, filestr.length()-1);
+				filestr = filestr.substring(0, filestr.length() - 1);
 
-			try {
-				BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(
-						new FileOutputStream(fileOpenCache), "UTF-8"));
-				bw.write(filestr);
-				bw.flush();
-				bw.close();
-			} catch (UnsupportedEncodingException e) {
-				e.printStackTrace();
-			} catch (FileNotFoundException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
+				try {
+					BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(
+							new FileOutputStream(fileOpenCache), "UTF-8"));
+					bw.write(filestr);
+					bw.flush();
+					bw.close();
+				} catch (UnsupportedEncodingException e) {
+					e.printStackTrace();
+				} catch (FileNotFoundException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 
 			System.exit(0);
