@@ -2,8 +2,10 @@ package com.xz.frame;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.HashSet;
 
 import javax.swing.*;
 import javax.swing.text.DefaultEditorKit;
@@ -15,7 +17,9 @@ public class EditorFrame extends JFrame {
 
 	private JTabbedPane area = new JTabbedPane();
 
+	private java.util.Set<String> filesOpened = new HashSet<String>();
 
+	private String fileOpenCache = System.getProperty("user.home")+"/.XZJEditor/filesOpened.dat";
 
 	private JFileChooser dialog = new JFileChooser(System.getProperty("user.home"));
 
@@ -26,7 +30,16 @@ public class EditorFrame extends JFrame {
 		}
 
 		@Override
-		public int beforeCloseTab() {
+		public int beforeCloseTabWhenWindowClosing() {
+			return beforeCloseTab(false);
+		}
+
+		@Override
+		public int beforeCloseTabManually() {
+			return beforeCloseTab(true);
+		}
+
+		private int beforeCloseTab(boolean manual) {
 			TabEncryptTextArea tabEncryptTextArea = (TabEncryptTextArea) area.getSelectedComponent();
 
 			int rep = JOptionPane.NO_OPTION;
@@ -36,7 +49,8 @@ public class EditorFrame extends JFrame {
 
 				if (rep == JOptionPane.YES_OPTION) {
 					try {
-						saveFile(false);
+						//manual(ly close tab) is the opposite logic of storeFilepath
+						saveFile(false, !manual);
 					} catch (IOException ex) {
 						Toolkit.getDefaultToolkit().beep();
 						JOptionPane.showMessageDialog(EditorFrame.this, ex.getMessage(), "Error Message", JOptionPane.ERROR_MESSAGE);
@@ -59,7 +73,7 @@ public class EditorFrame extends JFrame {
 		}
 		
 		public void actionPerformed(ActionEvent e) {
-			TabEncryptTextArea tabEncryptTextArea = new TabEncryptTextArea(area);
+			TabEncryptTextArea tabEncryptTextArea = new TabEncryptTextArea(area, md5password);
 			String tabTitle = "Tab #" + (area.getTabCount() + 1);
 			area.addTab(tabTitle, tabEncryptTextArea);
 
@@ -81,16 +95,27 @@ public class EditorFrame extends JFrame {
 		public void actionPerformed(ActionEvent e) {
 			if (dialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
 				String filepath = dialog.getSelectedFile().getAbsolutePath();
-				String fileBaseName = new File(filepath).getName();
 
-				TabEncryptTextArea tabEncryptTextArea = new TabEncryptTextArea(area);
+				boolean found = false;
+				if (filesOpened.contains(filepath)) {
+					for (int i = 0; i < area.getTabCount() ; i++){
+						TabEncryptTextArea tmp = (TabEncryptTextArea)area.getComponentAt(i);
+						if (tmp.getFileName().equals(filepath)){
+							area.setSelectedIndex(i);
+							found = true;
+							break;
+						}
+					}
+				}
 
-				area.addTab(fileBaseName, tabEncryptTextArea);
-				area.setTabComponentAt(area.getTabCount()-1, new SaveButtonTabComponent(area, fileBaseName));
-				area.setSelectedIndex(area.getTabCount()-1);
+				if (found)
+					return;
+				else
+					filesOpened.remove(filepath);
 
 				try {
-					readInFile(filepath, tabEncryptTextArea);
+					TabEncryptTextArea tabEncryptTextArea=addTabWithFile(filepath);
+					tabEncryptTextArea.getjTextArea().requestFocus();
 				} catch (IOException ex) {
 					Toolkit.getDefaultToolkit().beep();
 					JOptionPane.showMessageDialog(EditorFrame.this, ex.getMessage(), "Error Message", JOptionPane.ERROR_MESSAGE);
@@ -98,8 +123,6 @@ public class EditorFrame extends JFrame {
 					Toolkit.getDefaultToolkit().beep();
 					JOptionPane.showMessageDialog(EditorFrame.this, ex.getMessage(), "Error Message", JOptionPane.ERROR_MESSAGE);
 				}
-
-				tabEncryptTextArea.getjTextArea().requestFocus();
 			}
 		}
 	}
@@ -109,7 +132,7 @@ public class EditorFrame extends JFrame {
 	Action Save = new AbstractAction("Save", new ImageIcon("icons/save.gif")) {
 		public void actionPerformed(ActionEvent e) {
 			try {
-				saveFile(true);
+				saveFile(true, true);
 			} catch(IOException ex) {
 				Toolkit.getDefaultToolkit().beep();
 				JOptionPane.showMessageDialog(EditorFrame.this, ex.getMessage(), "Error Message", JOptionPane.ERROR_MESSAGE);
@@ -152,9 +175,9 @@ public class EditorFrame extends JFrame {
 	public EditorFrame(String md5password) {
 		this.md5password = md5password;
 
-		TabEncryptTextArea tabEncryptTextArea = new TabEncryptTextArea(area);
-		area.addTab("Tab #1", tabEncryptTextArea);
-		area.setTabComponentAt(0, new SaveButtonTabComponent(area, "Tab #1"));
+//		TabEncryptTextArea tabEncryptTextArea = new TabEncryptTextArea(area);
+//		area.addTab("Tab #1", tabEncryptTextArea);
+//		area.setTabComponentAt(0, new SaveButtonTabComponent(area, "Tab #1"));
 
 		add(area, BorderLayout.CENTER);
 		
@@ -234,7 +257,40 @@ public class EditorFrame extends JFrame {
 		setVisible(true);
 
 		//show UI then focus
-		tabEncryptTextArea.getjTextArea().requestFocus();
+		//tabEncryptTextArea.getjTextArea().requestFocus();
+	}
+
+	private void loadFileOpenedLastTime() {
+		String files = null;
+		try {
+			BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(fileOpenCache),"UTF-8"));
+			files = br.readLine();
+			br.close();
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		if (files != null){
+			for (String str:files.split(",")){
+				if (Files.exists(Paths.get(str))){
+					try {
+						addTabWithFile(str);
+					} catch (IOException ex) {
+						Toolkit.getDefaultToolkit().beep();
+						JOptionPane.showMessageDialog(EditorFrame.this, ex.getMessage(), "Error Message", JOptionPane.ERROR_MESSAGE);
+					} catch (EncryptException ex) {
+						Toolkit.getDefaultToolkit().beep();
+						JOptionPane.showMessageDialog(EditorFrame.this, ex.getMessage(), "Error Message", JOptionPane.ERROR_MESSAGE);
+					}
+				}
+			}
+
+			((TabEncryptTextArea)area.getComponentAt(area.getTabCount()-1)).getjTextArea().requestFocus();
+		}
 	}
 
 	private void saveBeforeCloseWindow(){
@@ -242,39 +298,73 @@ public class EditorFrame extends JFrame {
 		while (area.getTabCount() > 0) {
 			area.setSelectedIndex(0);
 			ButtonTabComponent buttonTabComponent = (ButtonTabComponent) area.getTabComponentAt(0);
-			if (!buttonTabComponent.closeTab())
+			if (!buttonTabComponent.closeTabWhenWindowClosing())
 				break;
 		}
 
-		if (area.getTabCount() == 0)
-			System.exit(0);
+		if (area.getTabCount() == 0) {
+			String filestr = "";
+			for (String str:filesOpened)
+				filestr += str+',';
 
+			filestr = filestr.substring(0, filestr.length()-1);
+
+			try {
+				BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(
+						new FileOutputStream(fileOpenCache), "UTF-8"));
+				bw.write(filestr);
+				bw.flush();
+				bw.close();
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace();
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			System.exit(0);
+		}
 	}
 
-	private void readInFile(String fileName, TabEncryptTextArea tabEncryptTextArea) throws IOException, EncryptException {
-		tabEncryptTextArea.loadContent(fileName, md5password);
+	private TabEncryptTextArea addTabWithFile(String fileName) throws IOException, EncryptException {
+		String fileBaseName = new File(fileName).getName();
+
+		TabEncryptTextArea tabEncryptTextArea = new TabEncryptTextArea(area, md5password);
+
+		area.addTab(fileBaseName, tabEncryptTextArea);
+		area.setTabComponentAt(area.getTabCount() - 1, new SaveButtonTabComponent(area, fileBaseName));
+		area.setSelectedIndex(area.getTabCount() - 1);
+
+		filesOpened.add(fileName);
+
+		tabEncryptTextArea.loadContent(fileName);
 
 		setTitle(fileName);
-	}
-	
-	private void saveFile(boolean echoTitle) throws IOException, EncryptException {
-		TabEncryptTextArea tabEncryptTextArea = (TabEncryptTextArea) area.getSelectedComponent();
 
-		if(!tabEncryptTextArea.getFileName().equals("Untitled"))
-			tabEncryptTextArea.saveContent(md5password, echoTitle);
-		else {
-			if(dialog.showSaveDialog(null)==JFileChooser.APPROVE_OPTION) {
-				tabEncryptTextArea.setFileName(dialog.getSelectedFile().getAbsolutePath());
-				tabEncryptTextArea.saveContent(md5password, echoTitle);
-			}
+		return tabEncryptTextArea;
+	}
+
+	//echoTitle false means the tab is closing, storeFilepath false means the tab is closed manually and
+	//next time when this application is opened, this file will not be opened automatically
+	private void saveFile(boolean echoTitle, boolean storeFilepath) throws IOException, EncryptException {
+		TabEncryptTextArea tabEncryptTextArea = (TabEncryptTextArea) area.getSelectedComponent();
+		String oriFilepath = tabEncryptTextArea.getFileName();
+		String filepath = tabEncryptTextArea.saveContent(echoTitle);
+
+		if (storeFilepath && !filepath.equals(oriFilepath)){
+			filesOpened.remove(oriFilepath);
+			filesOpened.add(filepath);
 		}
 	}
 
 	private void saveFileAs(boolean echoTitle) throws IOException, EncryptException {
 		if(dialog.showSaveDialog(null)==JFileChooser.APPROVE_OPTION) {
 			TabEncryptTextArea tabEncryptTextArea = (TabEncryptTextArea) area.getSelectedComponent();
+			filesOpened.remove(tabEncryptTextArea.getFileName());
+
 			tabEncryptTextArea.setFileName(dialog.getSelectedFile().getAbsolutePath());
-			tabEncryptTextArea.saveContent(md5password, echoTitle);
+			filesOpened.add(tabEncryptTextArea.saveContent(echoTitle));
 
 			setTitle(tabEncryptTextArea.getFileName());
 		}

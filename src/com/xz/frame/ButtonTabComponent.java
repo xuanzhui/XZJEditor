@@ -38,10 +38,20 @@ public abstract class ButtonTabComponent extends JPanel {
         label.setText(tabTitle);
     }
 
-    public abstract int beforeCloseTab();
+    public abstract int beforeCloseTabWhenWindowClosing();
 
-    public boolean closeTab(){
-        int rep = beforeCloseTab();
+    public abstract int beforeCloseTabManually();
+
+    public boolean closeTabManually(){
+        return closeTab(beforeCloseTabManually());
+    }
+
+    public boolean closeTabWhenWindowClosing(){
+        return closeTab(beforeCloseTabWhenWindowClosing());
+    }
+
+    //rep means the selected confirm dialog option
+    private boolean closeTab(int rep){
         if (rep == JOptionPane.CANCEL_OPTION ||
                 rep == JOptionPane.CLOSED_OPTION)
             return false;
@@ -75,15 +85,7 @@ public abstract class ButtonTabComponent extends JPanel {
         }
 
         public void actionPerformed(ActionEvent e) {
-            int rep = beforeCloseTab();
-            if (rep == JOptionPane.CANCEL_OPTION ||
-                    rep == JOptionPane.CLOSED_OPTION)
-                return;
-
-            int i = pane.indexOfTabComponent(ButtonTabComponent.this);
-            if (i != -1) {
-                pane.remove(i);
-            }
+            closeTabManually();
         }
 
         //we don't want to update UI for this button
