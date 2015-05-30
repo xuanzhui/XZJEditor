@@ -31,15 +31,27 @@ public class EditorFrame extends JFrame {
 
 		@Override
 		public int beforeCloseTabWhenWindowClosing() {
-			return beforeCloseTab(false);
+			TabEncryptTextArea tabEncryptTextArea = (TabEncryptTextArea) area.getComponentAt(area.indexOfTabComponent(this));
+			String oriFilepath = tabEncryptTextArea.getFileName();
+			int rep = beforeCloseTab();
+			String filepath = tabEncryptTextArea.getFileName();
+
+			if (!filepath.equals(oriFilepath)){
+				filesOpened.remove(oriFilepath);
+				filesOpened.add(filepath);
+			}
+
+			return rep;
 		}
 
 		@Override
 		public int beforeCloseTabManually() {
-			return beforeCloseTab(true);
+			TabEncryptTextArea tabEncryptTextArea = (TabEncryptTextArea) area.getComponentAt(area.indexOfTabComponent(this));
+			filesOpened.remove(tabEncryptTextArea.getFileName());
+			return beforeCloseTab();
 		}
 
-		private int beforeCloseTab(boolean manual) {
+		private int beforeCloseTab() {
 			TabEncryptTextArea tabEncryptTextArea = (TabEncryptTextArea) area.getSelectedComponent();
 
 			int rep = JOptionPane.NO_OPTION;
@@ -49,8 +61,7 @@ public class EditorFrame extends JFrame {
 
 				if (rep == JOptionPane.YES_OPTION) {
 					try {
-						//manual(ly close tab) is the opposite logic of storeFilepath
-						saveFile(false, !manual);
+						saveFile(false);
 					} catch (IOException ex) {
 						Toolkit.getDefaultToolkit().beep();
 						JOptionPane.showMessageDialog(EditorFrame.this, ex.getMessage(), "Error Message", JOptionPane.ERROR_MESSAGE);
@@ -131,8 +142,15 @@ public class EditorFrame extends JFrame {
 
 	Action Save = new AbstractAction("Save", new ImageIcon("icons/save.gif")) {
 		public void actionPerformed(ActionEvent e) {
+			TabEncryptTextArea tabEncryptTextArea = (TabEncryptTextArea) area.getSelectedComponent();
+			String oriFilepath = tabEncryptTextArea.getFileName();
 			try {
-				saveFile(true, true);
+				String filepath = saveFile(true);
+
+				if (!oriFilepath.equals(filepath)) {
+					filesOpened.remove(oriFilepath);
+					filesOpened.add(filepath);
+				}
 			} catch(IOException ex) {
 				Toolkit.getDefaultToolkit().beep();
 				JOptionPane.showMessageDialog(EditorFrame.this, ex.getMessage(), "Error Message", JOptionPane.ERROR_MESSAGE);
@@ -349,17 +367,10 @@ public class EditorFrame extends JFrame {
 		return tabEncryptTextArea;
 	}
 
-	//echoTitle false means the tab is closing, storeFilepath false means the tab is closed manually and
-	//next time when this application is opened, this file will not be opened automatically
-	private void saveFile(boolean echoTitle, boolean storeFilepath) throws IOException, EncryptException {
+	//echoTitle false means the tab is closing
+	private String saveFile(boolean echoTitle) throws IOException, EncryptException {
 		TabEncryptTextArea tabEncryptTextArea = (TabEncryptTextArea) area.getSelectedComponent();
-		String oriFilepath = tabEncryptTextArea.getFileName();
-		String filepath = tabEncryptTextArea.saveContent(echoTitle);
-
-		if (storeFilepath && !filepath.equals(oriFilepath)){
-			filesOpened.remove(oriFilepath);
-			filesOpened.add(filepath);
-		}
+		return tabEncryptTextArea.saveContent(echoTitle);
 	}
 
 	private void saveFileAs(boolean echoTitle) throws IOException, EncryptException {
