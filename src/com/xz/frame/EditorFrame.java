@@ -8,6 +8,8 @@ import java.nio.file.Paths;
 import java.util.HashSet;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.text.DefaultEditorKit;
 
 import com.xz.encrypt.EncryptException;
@@ -198,6 +200,14 @@ public class EditorFrame extends JFrame {
 //		area.setTabComponentAt(0, new SaveButtonTabComponent(area, "Tab #1"));
 
 		add(area, BorderLayout.CENTER);
+
+		area.addChangeListener(new ChangeListener() {
+			@Override
+			public void stateChanged(ChangeEvent e) {
+				if (area.getTabCount() > 0)
+					setTitle(((TabEncryptTextArea)area.getSelectedComponent()).getFileName());
+			}
+		});
 		
 		JMenuBar JMB = new JMenuBar();
 		setJMenuBar(JMB);
