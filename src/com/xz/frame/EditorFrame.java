@@ -380,7 +380,9 @@ public class EditorFrame extends JFrame {
 	//echoTitle false means the tab is closing
 	private String saveFile(boolean echoTitle) throws IOException, EncryptException {
 		TabEncryptTextArea tabEncryptTextArea = (TabEncryptTextArea) area.getSelectedComponent();
-		return tabEncryptTextArea.saveContent(echoTitle);
+		String newfilepath = tabEncryptTextArea.saveContent(echoTitle);
+		setTitle(newfilepath);
+		return newfilepath;
 	}
 
 	private void saveFileAs(boolean echoTitle) throws IOException, EncryptException {

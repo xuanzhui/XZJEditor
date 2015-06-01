@@ -118,13 +118,14 @@ public class TabEncryptTextArea extends JPanel {
                         return;
                     }
                 }
+                else {
+                    if (!contentChanged) {
+                        contentChanged = true;
 
-                if (!contentChanged) {
-                    contentChanged = true;
-
-                    //tabbedPane.setTitleAt(tabbedPane.getSelectedIndex(), "* "+fileName);
-                    ((ButtonTabComponent) tabbedPane.getTabComponentAt(tabbedPane.getSelectedIndex())).
-                            changeTabLabelTitle("* " + fileBaseName);
+                        //tabbedPane.setTitleAt(tabbedPane.getSelectedIndex(), "* "+fileName);
+                        ((ButtonTabComponent) tabbedPane.getTabComponentAt(tabbedPane.getSelectedIndex())).
+                                changeTabLabelTitle("* " + fileBaseName);
+                    }
                 }
             }
         });
@@ -430,9 +431,11 @@ public class TabEncryptTextArea extends JPanel {
         } else {
             EncryptOutputAttachEncInfo eoei = new EncryptOutputAttachEncInfo(fileName, md5password, encSType, ioffset);
             fileName = eoei.encryptFromString(jTextArea.getText(), "UTF-8");
+            fileBaseName = new File(fileName).getName();
         }
 
         contentChanged = false;
+        encTypeChanged = false;
 
         if (echoTitle)
             ((ButtonTabComponent)tabbedPane.getTabComponentAt(tabbedPane.getSelectedIndex())).

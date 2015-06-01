@@ -26,9 +26,9 @@ public class EncryptOutputAttachEncInfo {
 		//fileInput = new FileInputStream(this.filepath);
 
 		if (! this.destFilePath.endsWith(Encrypt.ENC_FILE_SUFF))
-			destFilePath = this.destFilePath+Encrypt.ENC_FILE_SUFF;
+			this.destFilePath = this.destFilePath+Encrypt.ENC_FILE_SUFF;
 		
-		fileOutput = new FileOutputStream(destFilePath);
+		fileOutput = new FileOutputStream(this.destFilePath);
 	}
 	
 	public EncryptOutputAttachEncInfo(String destFilePath, String md5password, String encType) throws FileNotFoundException{
